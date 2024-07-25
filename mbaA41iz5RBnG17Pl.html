@@ -1,0 +1,253 @@
+<html><head><base href="https://dailydraws.ai/fortune/custom/image/random/sidebar/clear/positive-quotes/"></head>
+<body>
+  <div id="app-container">
+    <div id="fortune-container">
+      <h1>正向小語籤筒</h1>
+      <div id="fortune-input">
+        <input type="file" id="image-upload" accept="image/*" multiple>
+        <button id="save-fortunes">儲存圖片</button>
+        <button id="clear-fortunes" class="danger-button">刪除所有圖片</button>
+      </div>
+      <div id="fortune-display">
+        <p>今天的正向小語籤正在準備中...</p>
+      </div>
+      <button id="draw-fortune" disabled>抽籤</button>
+      <p id="fortune-count">已抽取: 0 / 0</p>
+    </div>
+    <div id="sidebar">
+      <h2>抽籤記錄</h2>
+      <ul id="fortune-history"></ul>
+    </div>
+  </div>
+
+  <style>
+    body {
+      font-family: 'Microsoft JhengHei', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><g fill="%23f9e8d2" opacity="0.1"><path d="M50 0 L100 50 L50 100 L0 50 Z"/><circle cx="50" cy="50" r="30"/><path d="M20 20 L80 20 L80 80 L20 80 Z"/></g></svg>');
+      background-repeat: repeat;
+      background-size: 100px 100px;
+    }
+    #app-container {
+      display: flex;
+      height: 100vh;
+    }
+    #fortune-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      background-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    #sidebar {
+      width: 300px;
+      background-color: rgba(248, 248, 248, 0.9);
+      padding: 1rem;
+      overflow-y: auto;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+    #fortune-input {
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #image-upload {
+      margin-bottom: 0.5rem;
+    }
+    #save-fortunes, #clear-fortunes, #draw-fortune {
+      margin-top: 0.5rem;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #save-fortunes {
+      background-color: #3498db;
+    }
+    #save-fortunes:hover {
+      background-color: #2980b9;
+    }
+    .danger-button {
+      background-color: #e74c3c;
+    }
+    .danger-button:hover {
+      background-color: #c0392b;
+    }
+    #fortune-display {
+      margin: 1rem 0;
+      width: 300px;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      line-height: 1.5;
+      text-align: center;
+      padding: 1rem;
+      border-radius: 10px;
+      background-color: rgba(249, 249, 249, 0.9);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    #fortune-display img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    #draw-fortune {
+      background-color: #4CAF50;
+    }
+    #draw-fortune:hover {
+      background-color: #45a049;
+    }
+    #draw-fortune:active {
+      transform: scale(0.98);
+    }
+    #draw-fortune:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #fortune-count {
+      margin-top: 1rem;
+      font-style: italic;
+      color: #666;
+    }
+    #fortune-history {
+      list-style-type: none;
+      padding: 0;
+    }
+    #fortune-history li {
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+    #fortune-history li:hover {
+      transform: translateY(-2px);
+    }
+    #fortune-history li .date {
+      font-weight: bold;
+      color: #4CAF50;
+    }
+    #fortune-history li img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 0.5rem;
+      border-radius: 5px;
+    }
+  </style>
+
+  <script>
+    const imageUpload = document.getElementById('image-upload');
+    const saveForturesBtn = document.getElementById('save-fortunes');
+    const clearForturesBtn = document.getElementById('clear-fortunes');
+    const drawFortuneBtn = document.getElementById('draw-fortune');
+    const fortuneDisplay = document.getElementById('fortune-display');
+    const fortuneCount = document.getElementById('fortune-count');
+    const fortuneHistory = document.getElementById('fortune-history');
+
+    let fortunes = [];
+    let drawnFortunes = new Set();
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function formatDate(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function updateFortuneCount() {
+      fortuneCount.textContent = `已抽取: ${drawnFortunes.size} / ${fortunes.length}`;
+    }
+
+    saveForturesBtn.addEventListener('click', () => {
+      const files = imageUpload.files;
+      if (files.length > 0) {
+        fortunes = fortunes.concat(Array.from(files).map(file => URL.createObjectURL(file)));
+        shuffleArray(fortunes);
+        drawnFortunes.clear();
+        drawFortuneBtn.disabled = false;
+        updateFortuneCount();
+        alert('圖片已儲存並洗牌完成！');
+      } else {
+        alert('請先選擇至少一張圖片');
+      }
+    });
+
+    clearForturesBtn.addEventListener('click', () => {
+      if (fortunes.length > 0) {
+        if (confirm('確定要刪除所有圖片嗎？')) {
+          fortunes = [];
+          drawnFortunes.clear();
+          drawFortuneBtn.disabled = true;
+          fortuneDisplay.innerHTML = '<p>今天的正向小語籤正在準備中...</p>';
+          updateFortuneCount();
+          alert('所有圖片已刪除');
+        }
+      } else {
+        alert('目前沒有儲存的圖片');
+      }
+    });
+
+    drawFortuneBtn.addEventListener('click', () => {
+      if (fortunes.length === 0) {
+        alert('請先儲存一些圖片');
+        return;
+      }
+
+      let randomIndex;
+      if (drawnFortunes.size === fortunes.length) {
+        shuffleArray(fortunes);
+        drawnFortunes.clear();
+      }
+
+      do {
+        randomIndex = Math.floor(Math.random() * fortunes.length);
+      } while (drawnFortunes.has(randomIndex));
+
+      const randomFortune = fortunes[randomIndex];
+      drawnFortunes.add(randomIndex);
+
+      fortuneDisplay.innerHTML = `<img src="${randomFortune}" alt="抽到的正向小語籤">`;
+      updateFortuneCount();
+      
+      fortuneDisplay.style.opacity = 0;
+      fortuneDisplay.style.transform = 'translateY(-20px)';
+      setTimeout(() => {
+        fortuneDisplay.style.transition = 'opacity 0.5s, transform 0.5s';
+        fortuneDisplay.style.opacity = 1;
+        fortuneDisplay.style.transform = 'translateY(0)';
+      }, 50);
+
+      const today = new Date();
+      const listItem = document.createElement('li');
+      listItem.innerHTML = `<span class="date">${formatDate(today)}</span><br><img src="${randomFortune}" alt="抽到的正向小語籤">`;
+      fortuneHistory.insertBefore(listItem, fortuneHistory.firstChild);
+
+      listItem.style.opacity = 0;
+      listItem.style.transform = 'translateX(-20px)';
+      setTimeout(() => {
+        listItem.style.transition = 'opacity 0.5s, transform 0.5s';
+        listItem.style.opacity = 1;
+        listItem.style.transform = 'translateX(0)';
+      }, 50);
+    });
+  </script>
+</body>
+</html>
